@@ -21,7 +21,7 @@ on:
       - 'libs/**'
 
 env:
-  AWS_REGION: us-east-1
+  AWS_REGION: ap-south-1
   ECR_REPOSITORY: upload-service
   EKS_CLUSTER: production-cluster
   K8S_NAMESPACE: finance
@@ -76,9 +76,9 @@ jobs:
           DATABASE_URL: postgresql://admin:testpassword@localhost:5432/financedb_test
           JWT_ACCESS_SECRET: test-access-secret-min-32-chars-long
           # Mock AWS values — S3/SQS are mocked in tests
-          AWS_REGION: us-east-1
+          AWS_REGION: ap-south-1
           AWS_S3_BUCKET: test-bucket
-          AWS_SQS_PROCESSING_URL: https://sqs.us-east-1.amazonaws.com/test/queue
+          AWS_SQS_PROCESSING_URL: https://sqs.ap-south-1.amazonaws.com/test/queue
 
   # ── Job 2: Build & Push ──────────────────────────────────────
   build-and-push:

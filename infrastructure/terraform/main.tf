@@ -22,6 +22,18 @@ module "eks" {
   depends_on         = [module.vpc]
 }
 
+# Create the finance namespace for our application
+resource "kubernetes_namespace" "finance" {
+  metadata {
+    name = "finance"
+    labels = {
+      name        = "finance"
+      environment = var.environment
+    }
+  }
+  depends_on = [module.eks]
+}
+
 module "rds" {
   source         = "./modules/rds"
   env            = var.environment
@@ -52,9 +64,8 @@ module "s3" {
 module "sqs" {
   source                      = "./modules/sqs"
   env                         = var.environment
-  upload_service_role_arn     = module.iam.upload_service_role_arn
-  processing_service_role_arn = module.iam.processing_service_role_arn
-  depends_on                  = [module.iam]
+  upload_service_role_arn     = ""
+  processing_service_role_arn = ""
 }
 
 module "secrets" {
@@ -72,7 +83,7 @@ module "iam" {
   secrets_arns        = module.secrets.all_secret_arns
   github_org          = var.github_org
   github_repo         = var.github_repo
-  depends_on          = [module.eks, module.s3, module.sqs, module.secrets]
+  depends_on          = [module.eks, module.s3, module.sqs, module.secrets, kubernetes_namespace.finance]
 }
 
 # ── ECR Repositories — one per service ────────────────────────
@@ -109,8 +120,14 @@ resource "helm_release" "aws_load_balancer_controller" {
   chart      = "aws-load-balancer-controller"
   version    = "1.7.1"
   namespace  = "kube-system"
-  set { name = "clusterName"; value = module.eks.cluster_name }
-  set { name = "serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn"; value = module.iam.alb_controller_role_arn }
+  set {
+    name  = "clusterName"
+    value = module.eks.cluster_name
+  }
+  set {
+    name  = "serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn"
+    value = module.iam.alb_controller_role_arn
+  }
   depends_on = [module.eks, module.iam]
 }
 
@@ -125,8 +142,9 @@ resource "helm_release" "external_secrets" {
 }
 
 # ── Outputs ──────────────────────────────────────────────────
-output "eks_cluster_name"     { value = module.eks.cluster_name }
-output "rds_endpoint"         { value = module.rds.endpoint }
-output "redis_endpoint"       { value = module.elasticache.primary_endpoint }
-output "s3_bucket"            { value = module.s3.uploads_bucket_name }
-output "sqs_queue_url"        { value = module.sqs.processing_queue_url }
+output "eks_cluster_name"            { value = module.eks.cluster_name }
+output "rds_endpoint"                { value = module.rds.endpoint }
+output "redis_endpoint"              { value = module.elasticache.primary_endpoint }
+output "s3_bucket"                   { value = module.s3.uploads_bucket_name }
+output "sqs_queue_url"               { value = module.sqs.processing_queue_url }
+output "external_secrets_role_arn"   { value = module.iam.external_secrets_role_arn }

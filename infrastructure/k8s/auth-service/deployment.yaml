@@ -56,7 +56,7 @@ spec:
       containers:
         - name: auth-service
           # Image built by CI/CD pipeline, tagged with git SHA
-          image: 123456789012.dkr.ecr.us-east-1.amazonaws.com/auth-service:latest
+          image: 014071048720.dkr.ecr.ap-south-1.amazonaws.com/auth-service:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 3001

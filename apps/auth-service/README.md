@@ -239,7 +239,7 @@ aws configure
 ```
 
 **💡 Region Selection**: This guide uses **`ap-south-1` (Mumbai)** for better latency in India. You can use any AWS region by replacing `ap-south-1` throughout this guide with your preferred region:
-- `us-east-1` (N. Virginia)
+- `ap-south-1` (N. Virginia)
 - `eu-west-1` (Ireland)
 - `ap-southeast-1` (Singapore)
 - `ap-northeast-1` (Tokyo)

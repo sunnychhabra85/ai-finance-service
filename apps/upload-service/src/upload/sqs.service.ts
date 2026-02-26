@@ -18,6 +18,8 @@ import {
   SQSClient,
   SendMessageCommand,
   SendMessageCommandInput,
+  GetQueueUrlCommand,
+  CreateQueueCommand,
 } from '@aws-sdk/client-sqs';
 
 // ── Message schema sent to the processing queue ───────────────
@@ -35,8 +37,11 @@ export interface ProcessingJobMessage {
 export class SqsService {
   private readonly logger = new Logger(SqsService.name);
   private readonly sqs: SQSClient;
-  private readonly queueUrl: string;
+  private queueUrl: string;
+  private readonly queueName: string;
   private readonly delaySeconds: number;
+  private queueResolved = false;
+  private queueResolutionPromise?: Promise<void>;
 
   constructor(private readonly config: ConfigService) {
     const region = config.get<string>('upload.sqs.region');
@@ -47,6 +52,7 @@ export class SqsService {
     }
 
     this.queueUrl = queueUrl;
+    this.queueName = this.extractQueueName(queueUrl);
     this.delaySeconds = config.get<number>('upload.sqs.delaySeconds', 5);
 
     // Uses IRSA credentials in production (no explicit keys needed)
@@ -62,10 +68,72 @@ export class SqsService {
     });
   }
 
+  private extractQueueName(queueUrl: string): string {
+    try {
+      const parsed = new URL(queueUrl);
+      const parts = parsed.pathname.split('/').filter(Boolean);
+      return parts[parts.length - 1] || '';
+    } catch {
+      return '';
+    }
+  }
+
+  private async ensureQueueUrlResolved(): Promise<void> {
+    if (this.queueResolved) return;
+    if (this.queueResolutionPromise) {
+      await this.queueResolutionPromise;
+      return;
+    }
+
+    this.queueResolutionPromise = (async () => {
+      const isLocal = process.env.NODE_ENV !== 'production' && !!process.env.AWS_ENDPOINT_URL;
+      if (!isLocal || !this.queueName) {
+        this.queueResolved = true;
+        return;
+      }
+
+      try {
+        const resolved = await this.sqs.send(
+          new GetQueueUrlCommand({ QueueName: this.queueName }),
+        );
+        if (resolved.QueueUrl) {
+          this.queueUrl = resolved.QueueUrl;
+          this.logger.log(`Resolved SQS queue URL: ${this.queueUrl}`);
+        }
+      } catch (err) {
+        if (err?.name !== 'QueueDoesNotExist') {
+          throw err;
+        }
+
+        this.logger.warn(`SQS queue '${this.queueName}' missing. Creating it in local environment.`);
+        await this.sqs.send(new CreateQueueCommand({ QueueName: this.queueName }));
+
+        const created = await this.sqs.send(
+          new GetQueueUrlCommand({ QueueName: this.queueName }),
+        );
+
+        if (created.QueueUrl) {
+          this.queueUrl = created.QueueUrl;
+          this.logger.log(`Created and resolved SQS queue URL: ${this.queueUrl}`);
+        }
+      } finally {
+        this.queueResolved = true;
+      }
+    })();
+
+    try {
+      await this.queueResolutionPromise;
+    } finally {
+      this.queueResolutionPromise = undefined;
+    }
+  }
+
   // ── Publish a document-uploaded event ─────────────────────────
   async publishProcessingJob(
     job: Omit<ProcessingJobMessage, 'eventType' | 'timestamp'>,
   ): Promise<string> {
+    await this.ensureQueueUrlResolved();
+
     const message: ProcessingJobMessage = {
       ...job,
       eventType: 'DOCUMENT_UPLOADED',

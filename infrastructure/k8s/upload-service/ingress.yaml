@@ -21,7 +21,7 @@
 #     alb.ingress.kubernetes.io/group.name: finance-platform  # Groups with auth ingress!
 #     alb.ingress.kubernetes.io/scheme: internet-facing
 #     alb.ingress.kubernetes.io/target-type: ip
-#     alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:123:certificate/YOUR-CERT
+#     alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-south-1:123:certificate/YOUR-CERT
 #     alb.ingress.kubernetes.io/ssl-redirect: '443'
 # spec:
 #   rules:
@@ -50,7 +50,7 @@ metadata:
     kubernetes.io/ingress.class: alb
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
-    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:123456789012:certificate/YOUR-CERT-ARN
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-south-1:123456789012:certificate/YOUR-CERT-ARN
     alb.ingress.kubernetes.io/ssl-redirect: '443'
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
     alb.ingress.kubernetes.io/healthcheck-interval-seconds: '30'

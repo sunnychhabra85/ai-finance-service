@@ -11,6 +11,8 @@ import {
   ReceiveMessageCommand,
   DeleteMessageCommand,
   Message,
+  GetQueueUrlCommand,
+  CreateQueueCommand,
 } from '@aws-sdk/client-sqs';
 import {
   TextractClient,
@@ -20,7 +22,7 @@ import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 import { DatabaseService } from '@finance/database';
 import { PdfParserService } from './pdf-parser.service';
 import { CategorizerService } from './categorizer.service';
-import pdfParse from 'pdf-parse';
+import { PDFParse } from 'pdf-parse';
 
 interface ProcessingJobMessage {
   eventType: string;
@@ -37,9 +39,12 @@ export class WorkerService implements OnModuleInit, OnModuleDestroy {
   private readonly sqs: SQSClient;
   private readonly textract: TextractClient;
   private readonly s3: S3Client;
-  private readonly queueUrl: string;
+  private queueUrl: string;
+  private readonly queueName: string;
   private readonly s3Bucket: string;
   private isRunning = false;
+  private queueResolved = false;
+  private queueResolutionPromise?: Promise<void>;
 
   constructor(
     private readonly config: ConfigService,
@@ -50,6 +55,7 @@ export class WorkerService implements OnModuleInit, OnModuleDestroy {
     const region = config.get<string>('processing.aws.region');
     const endpoint = config.get<string>('processing.aws.endpointUrl');
     this.queueUrl = config.get<string>('processing.aws.sqsQueueUrl') || "";
+    this.queueName = this.extractQueueName(this.queueUrl);
     this.s3Bucket = config.get<string>('processing.aws.s3Bucket') || "";
 
     const awsConfig: any = { region };
@@ -67,6 +73,7 @@ export class WorkerService implements OnModuleInit, OnModuleDestroy {
 
   async onModuleInit() {
     this.isRunning = true;
+    await this.ensureQueueUrlResolved();
     this.logger.log('SQS worker started — polling for messages');
     this.poll(); // Start polling loop (non-blocking)
   }
@@ -76,10 +83,72 @@ export class WorkerService implements OnModuleInit, OnModuleDestroy {
     this.logger.log('SQS worker shutting down gracefully');
   }
 
+  private extractQueueName(queueUrl: string): string {
+    try {
+      const parsed = new URL(queueUrl);
+      const parts = parsed.pathname.split('/').filter(Boolean);
+      return parts[parts.length - 1] || '';
+    } catch {
+      return '';
+    }
+  }
+
+  private async ensureQueueUrlResolved(): Promise<void> {
+    if (this.queueResolved) return;
+    if (this.queueResolutionPromise) {
+      await this.queueResolutionPromise;
+      return;
+    }
+
+    this.queueResolutionPromise = (async () => {
+      const isLocal = !!this.config.get<string>('processing.aws.endpointUrl');
+      if (!isLocal || !this.queueName) {
+        this.queueResolved = true;
+        return;
+      }
+
+      try {
+        const resolved = await this.sqs.send(
+          new GetQueueUrlCommand({ QueueName: this.queueName }),
+        );
+        if (resolved.QueueUrl) {
+          this.queueUrl = resolved.QueueUrl;
+          this.logger.log(`Resolved SQS queue URL: ${this.queueUrl}`);
+        }
+      } catch (err) {
+        if (err?.name !== 'QueueDoesNotExist') {
+          throw err;
+        }
+
+        this.logger.warn(`SQS queue '${this.queueName}' missing. Creating it in local environment.`);
+        await this.sqs.send(new CreateQueueCommand({ QueueName: this.queueName }));
+
+        const created = await this.sqs.send(
+          new GetQueueUrlCommand({ QueueName: this.queueName }),
+        );
+
+        if (created.QueueUrl) {
+          this.queueUrl = created.QueueUrl;
+          this.logger.log(`Created and resolved SQS queue URL: ${this.queueUrl}`);
+        }
+      } finally {
+        this.queueResolved = true;
+      }
+    })();
+
+    try {
+      await this.queueResolutionPromise;
+    } finally {
+      this.queueResolutionPromise = undefined;
+    }
+  }
+
   // ── Long-poll loop ────────────────────────────────────────────
   private async poll() {
     while (this.isRunning) {
       try {
+        await this.ensureQueueUrlResolved();
+
         const response = await this.sqs.send(
           new ReceiveMessageCommand({
             QueueUrl: this.queueUrl,
@@ -216,7 +285,9 @@ export class WorkerService implements OnModuleInit, OnModuleDestroy {
     
     // Use pdf-parse to extract text from the PDF
     try {
-      const data = await (pdfParse as any).default(pdfBuffer);
+      const parser = new PDFParse({ data: pdfBuffer });
+      const data = await parser.getText();
+      await parser.destroy();
       this.logger.log(`Extracted ${data.text.length} characters from PDF using pdf-parse`);
       return data.text;
     } catch (err) {

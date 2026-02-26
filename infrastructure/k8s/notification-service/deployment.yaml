@@ -23,7 +23,7 @@ spec:
       terminationGracePeriodSeconds: 60  # Allow SSE connections to drain
       containers:
         - name: notification-service
-          image: 123456789012.dkr.ecr.us-east-1.amazonaws.com/notification-service:latest
+          image: 014071048720.dkr.ecr.ap-south-1.amazonaws.com/notification-service:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 3005
@@ -62,27 +62,3 @@ spec:
     - port: 80
       targetPort: 3005
   type: ClusterIP
----
-# infrastructure/k8s/notification-service/secrets.yaml
-apiVersion: external-secrets.io/v1beta1
-kind: ExternalSecret
-metadata:
-  name: notification-service-secrets
-  namespace: finance
-spec:
-  refreshInterval: 1h
-  secretStoreRef:
-    name: aws-secrets-manager
-    kind: ClusterSecretStore
-  target:
-    name: notification-service-secrets
-    creationPolicy: Owner
-  data:
-    - secretKey: DATABASE_URL
-      remoteRef:
-        key: prod/finance-platform/db
-        property: url
-    - secretKey: JWT_ACCESS_SECRET
-      remoteRef:
-        key: prod/finance-platform/jwt
-        property: accessSecret

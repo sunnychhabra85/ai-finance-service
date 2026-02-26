@@ -8,9 +8,9 @@ terraform {
     random     = { source = "hashicorp/random", version = "~> 3.6" }
   }
   backend "s3" {
-    bucket         = "finance-platform-terraform-state"
+    bucket         = "finance-platform-terraform-state-014071048720"
     key            = "production/terraform.tfstate"
-    region         = "us-east-1"
+    region         = "ap-south-1"
     dynamodb_table = "terraform-state-lock"
     encrypt        = true
   }

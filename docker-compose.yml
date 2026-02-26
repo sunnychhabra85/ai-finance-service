@@ -46,7 +46,7 @@ services:
       - '4566:4566'
     environment:
       SERVICES: s3,sqs,textract
-      AWS_DEFAULT_REGION: us-east-1
+      AWS_DEFAULT_REGION: ap-south-1
       LOCALSTACK_HOST: localstack
     volumes:
       - localstackdata:/var/lib/localstack
@@ -100,7 +100,7 @@ services:
       PORT: '3002'
       DATABASE_URL: postgresql://admin:localpassword123@postgres:5432/financedb
       JWT_ACCESS_SECRET: local-dev-access-secret-min-32-chars-ok
-      AWS_REGION: us-east-1
+      AWS_REGION: ap-south-1
       AWS_S3_BUCKET: finance-platform-uploads-dev
       AWS_SQS_PROCESSING_URL: http://localstack:4566/000000000000/document-processing
       AWS_ENDPOINT_URL: http://localstack:4566
@@ -131,7 +131,7 @@ services:
       NODE_ENV: development
       PORT: '3003'
       DATABASE_URL: postgresql://admin:localpassword123@postgres:5432/financedb
-      AWS_REGION: us-east-1
+      AWS_REGION: ap-south-1
       AWS_S3_BUCKET: finance-platform-uploads-dev
       AWS_SQS_PROCESSING_URL: http://localstack:4566/000000000000/document-processing
       AWS_ENDPOINT_URL: http://localstack:4566

@@ -17,7 +17,7 @@ metadata:
 
     # ── TLS ───────────────────────────────────────────────────
     # Replace with your ACM certificate ARN
-    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:123456789012:certificate/YOUR-CERT-ARN
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-south-1:123456789012:certificate/YOUR-CERT-ARN
     alb.ingress.kubernetes.io/ssl-redirect: '443'     # Redirect HTTP → HTTPS
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
 

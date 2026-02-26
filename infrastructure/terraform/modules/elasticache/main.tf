@@ -18,23 +18,32 @@ resource "aws_security_group" "redis" {
     protocol        = "tcp"
     security_groups = [var.allowed_sg_id]
   }
-  egress { from_port = 0; to_port = 0; protocol = "-1"; cidr_blocks = ["0.0.0.0/0"] }
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 }
 
 resource "aws_elasticache_replication_group" "redis" {
   replication_group_id = "${var.env}-finance-redis"
   description          = "Redis for finance platform analytics caching"
-  node_type            = var.node_type
-  num_cache_clusters   = var.env == "production" ? 2 : 1  # 2 for HA
+  node_type            = var.node_type  # cache.t3.micro = ~$12/mo
+  num_cache_clusters   = 1  # LEARNING: Single node for cost savings
   port                 = 6379
 
   subnet_group_name  = aws_elasticache_subnet_group.main.name
   security_group_ids = [aws_security_group.redis.id]
 
-  at_rest_encryption_enabled = true
-  transit_encryption_enabled = true
+  # LEARNING: Encryption disabled for t3.micro compatibility
+  # PRODUCTION: Enable for compliance (requires cache.t3.medium+)
+  at_rest_encryption_enabled = false  # Enable in production
+  transit_encryption_enabled = false  # Enable in production
 
-  automatic_failover_enabled = var.env == "production"
+  # LEARNING: No automatic failover (requires 2+ nodes)
+  # PRODUCTION: Set to true with num_cache_clusters = 2
+  automatic_failover_enabled = false
 
   tags = { Name = "${var.env}-redis" }
 }

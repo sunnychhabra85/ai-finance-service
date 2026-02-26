@@ -39,6 +39,8 @@ export class S3Service {
     // Locally: uses AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY from .env
     this.s3 = new S3Client({
       region,
+      requestChecksumCalculation: 'WHEN_REQUIRED',
+      responseChecksumValidation: 'WHEN_REQUIRED',
       // Add this block for local development with LocalStack:
       ...(process.env.NODE_ENV !== 'production' && {
         endpoint: process.env.AWS_ENDPOINT_URL || 'http://localhost:4566',
@@ -89,10 +91,17 @@ export class S3Service {
 
       // ── Encryption at rest ─────────────────────────────────
       ServerSideEncryption: 'AES256',
+      
+      // ── Disable automatic checksum (AWS SDK v3.995.0+) ─────
+      // Newer SDK versions auto-add CRC32 checksums. For browser/curl uploads,
+      // this adds complexity. Disable for presigned URLs.
+      ChecksumAlgorithm: undefined,
     });
 
     const uploadUrl = await getSignedUrl(this.s3, command, {
       expiresIn: this.presignedUrlExpiry,
+      // Explicitly disable checksums in presigned URL
+      unhoistableHeaders: new Set(),
     });
 
     this.logger.log(

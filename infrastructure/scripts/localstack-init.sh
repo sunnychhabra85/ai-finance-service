@@ -8,7 +8,7 @@
 echo "Initializing LocalStack resources..."
 
 ENDPOINT=http://localhost:4566
-REGION=us-east-1
+REGION=ap-south-1
 
 # ── Create S3 bucket ─────────────────────────────────────────
 aws --endpoint-url=$ENDPOINT s3 mb s3://finance-platform-uploads-dev --region $REGION

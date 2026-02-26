@@ -13,7 +13,7 @@
 # after maxReceiveCount attempts
 resource "aws_sqs_queue" "processing_dlq" {
   name                      = "${var.env}-document-processing-dlq"
-  message_retention_seconds = 1_209_600  # 14 days to investigate failures
+  message_retention_seconds = 1209600  # 14 days to investigate failures
 
   # Encryption at rest
   sqs_managed_sse_enabled = true
@@ -26,7 +26,7 @@ resource "aws_sqs_queue" "processing" {
   name                       = "${var.env}-document-processing"
   visibility_timeout_seconds = 300  # 5 minutes: must finish processing before timeout
                                     # Set higher than max OCR processing time
-  message_retention_seconds  = 86_400  # 1 day
+  message_retention_seconds  = 86400  # 1 day
   receive_wait_time_seconds  = 20   # Long polling (reduces empty receives, saves cost)
   delay_seconds              = 5    # Give S3 5s to finalize before processing reads
 
@@ -45,6 +45,8 @@ resource "aws_sqs_queue" "processing" {
 
 # ── Allow S3 to send messages (if using S3 event notifications) ──
 resource "aws_sqs_queue_policy" "processing" {
+  count = var.upload_service_role_arn != "" && var.processing_service_role_arn != "" ? 1 : 0
+
   queue_url = aws_sqs_queue.processing.id
   policy = jsonencode({
     Version = "2012-10-17"

@@ -20,7 +20,12 @@ resource "aws_security_group" "rds" {
     protocol        = "tcp"
     security_groups = [var.allowed_sg_id] # EKS node SG only
   }
-  egress { from_port = 0; to_port = 0; protocol = "-1"; cidr_blocks = ["0.0.0.0/0"] }
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
   tags = { Name = "${var.env}-rds-sg" }
 }
 
@@ -32,9 +37,9 @@ resource "random_password" "db_password" {
 resource "aws_db_instance" "postgres" {
   identifier        = "${var.env}-finance-postgres"
   engine            = "postgres"
-  engine_version    = "16.1"
+  engine_version    = "16.12"
   instance_class    = var.instance_class
-  allocated_storage = 20
+  allocated_storage = 20  # FREE TIER: 20GB included for 12 months
   max_allocated_storage = 100  # Auto-scaling storage up to 100GB
 
   db_name  = var.db_name
@@ -44,8 +49,9 @@ resource "aws_db_instance" "postgres" {
   db_subnet_group_name   = aws_db_subnet_group.main.name
   vpc_security_group_ids = [aws_security_group.rds.id]
 
-  # High availability
-  multi_az = var.env == "production"
+  # LEARNING: Single-AZ (FREE TIER compatible)
+  # PRODUCTION: Change to true for Multi-AZ HA (~2x cost)
+  multi_az = false  # Set to true for production HA
 
   # Encryption at rest
   storage_encrypted = true

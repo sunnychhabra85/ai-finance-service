@@ -65,7 +65,13 @@ resource "aws_iam_role_policy" "auth_service" {
   })
 }
 resource "kubernetes_service_account" "auth_service" {
-  metadata { name = "auth-service-sa"; namespace = "finance"; annotations = { "eks.amazonaws.com/role-arn" = aws_iam_role.auth_service.arn } }
+  metadata {
+    name      = "auth-service-sa"
+    namespace = "finance"
+    annotations = {
+      "eks.amazonaws.com/role-arn" = aws_iam_role.auth_service.arn
+    }
+  }
 }
 
 # ── Analytics Service IRSA ─────────────────────────────────────
@@ -92,7 +98,13 @@ resource "aws_iam_role_policy" "analytics_service" {
   ]})
 }
 resource "kubernetes_service_account" "analytics_service" {
-  metadata { name = "analytics-service-sa"; namespace = "finance"; annotations = { "eks.amazonaws.com/role-arn" = aws_iam_role.analytics_service.arn } }
+  metadata {
+    name      = "analytics-service-sa"
+    namespace = "finance"
+    annotations = {
+      "eks.amazonaws.com/role-arn" = aws_iam_role.analytics_service.arn
+    }
+  }
 }
 
 # ── Notification Service IRSA ──────────────────────────────────
@@ -119,7 +131,13 @@ resource "aws_iam_role_policy" "notification_service" {
   ]})
 }
 resource "kubernetes_service_account" "notification_service" {
-  metadata { name = "notification-service-sa"; namespace = "finance"; annotations = { "eks.amazonaws.com/role-arn" = aws_iam_role.notification_service.arn } }
+  metadata {
+    name      = "notification-service-sa"
+    namespace = "finance"
+    annotations = {
+      "eks.amazonaws.com/role-arn" = aws_iam_role.notification_service.arn
+    }
+  }
 }
 
 # ── Processing Service IRSA ────────────────────────────────────
@@ -149,7 +167,13 @@ resource "aws_iam_role_policy" "processing_service" {
   ]})
 }
 resource "kubernetes_service_account" "processing_service" {
-  metadata { name = "processing-service-sa"; namespace = "finance"; annotations = { "eks.amazonaws.com/role-arn" = aws_iam_role.processing_service.arn } }
+  metadata {
+    name      = "processing-service-sa"
+    namespace = "finance"
+    annotations = {
+      "eks.amazonaws.com/role-arn" = aws_iam_role.processing_service.arn
+    }
+  }
 }
 
 # ── ALB Controller IRSA ────────────────────────────────────────
@@ -199,7 +223,6 @@ resource "aws_iam_role_policy" "external_secrets" {
 output "alb_controller_role_arn"      { value = aws_iam_role.alb_controller.arn }
 output "external_secrets_role_arn"    { value = aws_iam_role.external_secrets.arn }
 output "processing_service_role_arn"  { value = aws_iam_role.processing_service.arn }
-output "upload_service_role_arn"      { value = "" } # defined in upload_service.tf
 
 variable "env" {}
 variable "oidc_provider_arn" {}

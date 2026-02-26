@@ -59,7 +59,7 @@ docker-compose up -d postgres redis localstack
 ```bash
 aws configure set aws_access_key_id test
 aws configure set aws_secret_access_key test
-aws configure set region us-east-1
+aws configure set region ap-south-1
 aws --endpoint-url=http://localhost:4566 s3 mb s3://finance-platform-uploads-dev
 aws --endpoint-url=http://localhost:4566 sqs create-queue --queue-name document-processing-dlq
 aws --endpoint-url=http://localhost:4566 sqs create-queue --queue-name document-processing --attributes VisibilityTimeout=300
@@ -185,7 +185,7 @@ terraform plan -out=tfplan
 terraform apply tfplan
 
 # 3. Configure kubectl
-aws eks update-kubeconfig --name production-cluster --region us-east-1
+aws eks update-kubeconfig --name production-cluster --region ap-south-1
 
 # 4. Deploy applications
 kubectl apply -f ../k8s/namespace.yaml

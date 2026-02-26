@@ -12,7 +12,7 @@ on:
     branches: [main]
 
 env:
-  AWS_REGION: us-east-1
+  AWS_REGION: ap-south-1
   EKS_CLUSTER: production-cluster
   K8S_NAMESPACE: finance
 
@@ -88,7 +88,7 @@ jobs:
           DATABASE_URL: postgresql://admin:testpassword@localhost:5432/financedb_test
           JWT_ACCESS_SECRET: test-access-secret-min-32-chars-long-ok
           JWT_REFRESH_SECRET: test-refresh-secret-min-32-chars-long-ok
-          AWS_REGION: us-east-1
+          AWS_REGION: ap-south-1
           AWS_S3_BUCKET: test-bucket
           AWS_SQS_PROCESSING_URL: http://localhost:4566/000000000000/test-queue
           ANTHROPIC_API_KEY: ''

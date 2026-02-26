@@ -51,7 +51,7 @@ spec:
 
       containers:
         - name: upload-service
-          image: 123456789012.dkr.ecr.us-east-1.amazonaws.com/upload-service:latest
+          image: 014071048720.dkr.ecr.ap-south-1.amazonaws.com/upload-service:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 3002

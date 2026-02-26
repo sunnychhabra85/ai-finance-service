@@ -53,21 +53,25 @@ resource "aws_subnet" "private" {
 }
 
 # ── Elastic IPs for NAT Gateways ──────────────────────────────
+# COST OPTIMIZATION: Use 1 NAT instead of 3 = $32/mo savings!
+# Trade-off: If NAT fails, all private subnets lose internet access
+# For production HA: change count to length(var.availability_zones)
 resource "aws_eip" "nat" {
-  count  = length(var.availability_zones)
+  count  = 1  # LEARNING: Single NAT (change to length(var.availability_zones) for HA)
   domain = "vpc"
   tags   = { Name = "${var.env}-nat-eip-${count.index}" }
 }
 
 # ── NAT Gateways (allow private subnets to reach internet) ────
-# COST: Each NAT Gateway costs ~$35/month + data transfer
-# For cost savings: use count = 1 (single NAT) but lose HA
+# COST: NAT Gateway = $32/month + $0.045/GB data transfer
+# LEARNING MODE: 1 NAT shared across all AZs = ~$32/mo
+# PRODUCTION MODE: 1 NAT per AZ = ~$64-96/mo (HA but expensive)
 resource "aws_nat_gateway" "main" {
-  count         = length(var.availability_zones)  # One per AZ for HA
-  allocation_id = aws_eip.nat[count.index].id
-  subnet_id     = aws_subnet.public[count.index].id
+  count         = 1  # LEARNING: Single NAT (change to length(var.availability_zones) for HA)
+  allocation_id = aws_eip.nat[0].id
+  subnet_id     = aws_subnet.public[0].id  # All private subnets route through first NAT
 
-  tags = { Name = "${var.env}-nat-${var.availability_zones[count.index]}" }
+  tags = { Name = "${var.env}-nat-shared" }
   depends_on = [aws_internet_gateway.main]
 }
 
@@ -89,21 +93,40 @@ resource "aws_route_table_association" "public" {
 }
 
 # Private: route to internet via NAT gateway
+# LEARNING: All private subnets share ONE route table → ONE NAT
+# PRODUCTION: Uncomment count-based version for per-AZ routing
 resource "aws_route_table" "private" {
-  count  = length(var.availability_zones)
+  count  = 1  # Single route table for all private subnets
   vpc_id = aws_vpc.main.id
   route {
     cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = aws_nat_gateway.main[count.index].id
+    nat_gateway_id = aws_nat_gateway.main[0].id  # All traffic goes through first NAT
   }
-  tags = { Name = "${var.env}-private-rt-${count.index}" }
+  tags = { Name = "${var.env}-private-rt-shared" }
 }
 
 resource "aws_route_table_association" "private" {
   count          = length(var.availability_zones)
   subnet_id      = aws_subnet.private[count.index].id
-  route_table_id = aws_route_table.private[count.index].id
+  route_table_id = aws_route_table.private[0].id  # All subnets use shared route table
 }
+
+# ── PRODUCTION HA VERSION (commented out for cost savings) ────
+# Uncomment this and comment out above for per-AZ NAT routing:
+# resource "aws_route_table" "private" {
+#   count  = length(var.availability_zones)
+#   vpc_id = aws_vpc.main.id
+#   route {
+#     cidr_block     = "0.0.0.0/0"
+#     nat_gateway_id = aws_nat_gateway.main[count.index].id
+#   }
+#   tags = { Name = "${var.env}-private-rt-${count.index}" }
+# }
+# resource "aws_route_table_association" "private" {
+#   count          = length(var.availability_zones)
+#   subnet_id      = aws_subnet.private[count.index].id
+#   route_table_id = aws_route_table.private[count.index].id
+# }
 
 # ── Security Groups ───────────────────────────────────────────
 # ALB: accepts public HTTPS
@@ -131,4 +154,32 @@ resource "aws_security_group" "alb" {
     cidr_blocks = ["0.0.0.0/0"]
   }
   tags = { Name = "${var.env}-alb-sg" }
+}
+
+output "vpc_id" {
+  value = aws_vpc.main.id
+}
+
+output "private_subnet_ids" {
+  value = aws_subnet.private[*].id
+}
+
+output "public_subnet_ids" {
+  value = aws_subnet.public[*].id
+}
+
+output "alb_security_group_id" {
+  value = aws_security_group.alb.id
+}
+
+variable "env" {
+  type = string
+}
+
+variable "vpc_cidr" {
+  type = string
+}
+
+variable "availability_zones" {
+  type = list(string)
 }
