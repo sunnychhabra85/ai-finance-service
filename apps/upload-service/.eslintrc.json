@@ -6,7 +6,7 @@
       "files": ["*.ts", "*.tsx"],
       "excludedFiles": ["*.spec.ts", "*.test.ts"],
       "parserOptions": {
-        "project": ["apps/auth-service/tsconfig.app.json"],
+        "project": ["apps/upload-service/tsconfig.app.json"],
         "createDefaultProgram": true
       },
       "rules": {}
