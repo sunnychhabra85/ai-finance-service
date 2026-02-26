@@ -1,0 +1,224 @@
+# =============================================================
+# .github/workflows/analytics-service.yml
+# CI/CD pipeline for the Analytics Service
+# Triggers on changes to analytics-service or shared libs
+# =============================================================
+
+name: Analytics Service — Build, Test & Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/analytics-service/**'
+      - 'libs/database/**'
+      - 'libs/shared-types/**'
+      - 'libs/shared-dtos/**'
+      - '.github/workflows/analytics-service.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/analytics-service/**'
+      - 'libs/**'
+
+env:
+  AWS_REGION: ap-south-1
+  ECR_REPOSITORY: analytics-service
+  EKS_CLUSTER: production-cluster
+  K8S_NAMESPACE: finance
+  SERVICE_NAME: analytics-service
+
+jobs:
+  # ── Job 1: Test ──────────────────────────────────────────────
+  test:
+    name: Test & Lint
+    runs-on: ubuntu-latest
+
+    services:
+      # Spin up PostgreSQL for integration tests
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: financedb_test
+          POSTGRES_USER: admin
+          POSTGRES_PASSWORD: testpassword
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      # Redis for analytics caching
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Nx needs full history to detect changes
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: npx prisma generate --schema=libs/database/prisma/schema.prisma
+
+      - name: Run database migrations (test DB)
+        run: npx prisma migrate deploy --schema=libs/database/prisma/schema.prisma
+        env:
+          DATABASE_URL: postgresql://admin:testpassword@localhost:5432/financedb_test
+
+      - name: Lint
+        run: npx nx lint analytics-service
+
+      - name: Unit tests
+        run: npx nx test analytics-service --passWithNoTests --coverage
+        env:
+          DATABASE_URL: postgresql://admin:testpassword@localhost:5432/financedb_test
+          JWT_ACCESS_SECRET: test-access-secret-at-least-32-chars-long
+          REDIS_URL: redis://localhost:6379
+          ANTHROPIC_API_KEY: test-api-key
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+        if: always()
+
+  # ── Job 2: Build & Push ──────────────────────────────────────
+  build-and-push:
+    name: Build & Push to ECR
+    needs: test
+    runs-on: ubuntu-latest
+    # Only build on main branch (not PRs)
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tag }}
+
+    permissions:
+      id-token: write   # Required for OIDC
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials via OIDC
+        # OIDC = no long-lived AWS credentials stored in GitHub Secrets!
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/production-github-actions-role
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Generate image tag
+        id: meta
+        run: |
+          # Tag with git SHA for traceability
+          SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-8)
+          echo "tag=${SHORT_SHA}" >> $GITHUB_OUTPUT
+          echo "image=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${SHORT_SHA}" >> $GITHUB_OUTPUT
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/analytics-service/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image }}
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
+          # Cache layers between builds — speeds up CI
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
+
+      - name: Scan image for vulnerabilities
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ steps.meta.outputs.image }}
+          format: 'table'
+          exit-code: '1'       # Fail pipeline on CRITICAL vulnerabilities
+          ignore-unfixed: true
+          severity: 'CRITICAL'
+
+  # ── Job 3: Deploy to EKS ─────────────────────────────────────
+  deploy:
+    name: Deploy to EKS
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/production-github-actions-role
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Configure kubectl
+        run: |
+          aws eks update-kubeconfig \
+            --name ${{ env.EKS_CLUSTER }} \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Apply K8s manifests (secrets, deployment)
+        run: |
+          kubectl apply -f infrastructure/k8s/namespace.yaml
+          kubectl apply -f infrastructure/k8s/analytics-service/secrets.yaml
+          kubectl apply -f infrastructure/k8s/analytics-service/deployment.yaml
+
+      - name: Update deployment image
+        run: |
+          IMAGE=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ needs.build-and-push.outputs.image-tag }}
+          kubectl set image deployment/${{ env.SERVICE_NAME }} \
+            ${{ env.SERVICE_NAME }}=$IMAGE \
+            -n ${{ env.K8S_NAMESPACE }}
+
+      - name: Wait for rollout
+        run: |
+          kubectl rollout status deployment/${{ env.SERVICE_NAME }} \
+            -n ${{ env.K8S_NAMESPACE }} \
+            --timeout=300s
+
+      - name: Verify deployment
+        run: |
+          kubectl get pods -n ${{ env.K8S_NAMESPACE }} -l app=${{ env.SERVICE_NAME }}
+          echo "✅ Deployment successful! Tag: ${{ needs.build-and-push.outputs.image-tag }}"
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "❌ Deployment FAILED — rolling back"
+          kubectl rollout undo deployment/${{ env.SERVICE_NAME }} -n ${{ env.K8S_NAMESPACE }}
