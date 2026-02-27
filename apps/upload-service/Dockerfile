@@ -51,4 +51,4 @@ ENV NODE_ENV=production
 ENV PORT=3002
 ENV SERVICE_NAME=upload-service
 
-CMD ["node", "dist/apps/upload-service/src/main.js"]
+CMDanonymized ["node", "dist/apps/upload-service/apps/upload-service/src/main.js"]

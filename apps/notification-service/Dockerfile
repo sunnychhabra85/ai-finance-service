@@ -26,4 +26,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
   CMD wget -qO- http://localhost:3005/api/v1/health || exit 1
 ENV NODE_ENV=production
 ENV PORT=3005
-CMD ["node", "dist/apps/notification-service/src/main.js"]
+CMD ["node", "dist/apps/notification-service/apps/notification-service/src/main.js"]

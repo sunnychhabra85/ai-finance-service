@@ -26,4 +26,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
   CMD wget -qO- http://localhost:3004/api/v1/health || exit 1
 ENV NODE_ENV=production
 ENV PORT=3004
-CMD ["node", "dist/apps/analytics-service/src/main.js"]
+CMD ["node", "dist/apps/analytics-service/apps/analytics-service/src/main.js"]
