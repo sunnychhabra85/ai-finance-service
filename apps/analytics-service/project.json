@@ -21,7 +21,7 @@
       "executor": "@nx/jest:jest",
       "outputs": ["{workspaceRoot}/coverage/apps/analytics-service"],
       "options": {
-        "jestConfig": "apps/analytics-service/jest.config.js",
+        "jestConfig": "apps/analytics-service/jest.config.ts",
         "passWithNoTests": true
       }
     },

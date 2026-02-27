@@ -21,7 +21,7 @@
       "executor": "@nx/jest:jest",
       "outputs": ["{workspaceRoot}/coverage/apps/notification-service"],
       "options": {
-        "jestConfig": "apps/notification-service/jest.config.js",
+        "jestConfig": "apps/notification-service/jest.config.ts",
         "passWithNoTests": true
       }
     },

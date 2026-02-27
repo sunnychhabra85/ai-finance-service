@@ -21,7 +21,7 @@
       "executor": "@nx/jest:jest",
       "outputs": ["{workspaceRoot}/coverage/apps/upload-service"],
       "options": {
-        "jestConfig": "apps/upload-service/jest.config.js",
+        "jestConfig": "apps/upload-service/jest.config.ts",
         "passWithNoTests": true
       }
     },
