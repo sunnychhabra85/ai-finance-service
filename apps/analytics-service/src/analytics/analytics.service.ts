@@ -4,7 +4,7 @@
 // All expensive queries are cached in Redis (5min TTL)
 // =============================================================
 
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { DatabaseService } from '@finance/database';
 import { CacheService } from './cache.service';
 

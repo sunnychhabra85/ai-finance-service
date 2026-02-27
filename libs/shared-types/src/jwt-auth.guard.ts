@@ -20,7 +20,7 @@ import { PrismaClient } from '@prisma/client';
 export function createJwtStrategy(secretConfigKey: string) {
   @Injectable()
   class JwtStrategyImpl extends PassportStrategy(Strategy, 'jwt') {
-    constructor(config: ConfigService, private readonly prisma: PrismaClient) {
+    constructor(config: ConfigService, public readonly prisma: PrismaClient) {
       super({
         jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
         ignoreExpiration: false,

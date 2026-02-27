@@ -19,6 +19,10 @@ COPY . .
 # Generate Prisma client
 RUN npx prisma generate --schema=libs/database/prisma/schema.prisma
 
+# Build shared libraries first (upload-service depends on them)
+RUN npx nx build database --prod
+RUN npx nx build shared-types --prod
+
 # Build upload-service only
 RUN npx nx build upload-service --prod
 

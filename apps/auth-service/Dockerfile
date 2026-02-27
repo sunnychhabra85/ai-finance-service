@@ -24,6 +24,10 @@ COPY . .
 # Generate Prisma client before building
 RUN npx prisma generate --schema=libs/database/prisma/schema.prisma
 
+# Build shared libraries first (auth-service depends on them)
+RUN npx nx build database --prod
+RUN npx nx build shared-types --prod
+
 # Build only the auth-service (Nx handles dependency graph)
 RUN npx nx build auth-service --prod
 

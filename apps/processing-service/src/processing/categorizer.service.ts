@@ -5,6 +5,7 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import Anthropic from '@anthropic-ai/sdk';
 
 type Category = 'Food' | 'Travel' | 'Shopping' | 'Bills' | 'Entertainment' | 'Others';
 
@@ -103,8 +104,7 @@ export class CategorizerService {
   // ── AI fallback using Anthropic ───────────────────────────────
   private async categorizeWithAI(description: string): Promise<Category> {
     // Lazy import to avoid error if SDK not installed
-    const Anthropic = require('@anthropic-ai/sdk');
-    const client = new Anthropic.Anthropic({
+    const client = new Anthropic({
       apiKey: this.config.get<string>('processing.anthropicApiKey'),
     });
 

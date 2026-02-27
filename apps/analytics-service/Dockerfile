@@ -9,6 +9,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npx prisma generate --schema=libs/database/prisma/schema.prisma
+RUN npx nx build database --prod
 RUN npx nx build analytics-service --prod
 
 FROM node:20-alpine AS runner
