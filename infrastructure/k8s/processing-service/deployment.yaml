@@ -69,22 +69,22 @@ spec:
   type: ClusterIP
 ---
 # Processing service scales based on SQS queue depth (not CPU)
-# Use KEDA (Kubernetes Event-Driven Autoscaling) for this:
-# helm install keda kedacore/keda --namespace keda --create-namespace
-apiVersion: keda.sh/v1alpha1
-kind: ScaledObject
-metadata:
-  name: processing-service-scaler
-  namespace: finance
-spec:
-  scaleTargetRef:
-    name: processing-service
-  minReplicaCount: 1
-  maxReplicaCount: 10
-  triggers:
-    - type: aws-sqs-queue
-      metadata:
-        queueURL: "https://sqs.ap-south-1.amazonaws.com/014071048720/prod-document-processing"
-        queueLength: "5"  # 1 replica per 5 messages
-        awsRegion: "ap-south-1"
-        identityOwner: "operator"
+# KEDA (Kubernetes Event-Driven Autoscaling) not installed yet
+# To enable: helm install keda kedacore/keda --namespace keda --create-namespace
+# apiVersion: keda.sh/v1alpha1
+# kind: ScaledObject
+# metadata:
+#   name: processing-service-scaler
+#   namespace: finance
+# spec:
+#   scaleTargetRef:
+#     name: processing-service
+#   minReplicaCount: 1
+#   maxReplicaCount: 10
+#   triggers:
+#     - type: aws-sqs-queue
+#       metadata:
+#         queueURL: "https://sqs.ap-south-1.amazonaws.com/014071048720/prod-document-processing"
+#         queueLength: "5"  # 1 replica per 5 messages
+#         awsRegion: "ap-south-1"
+#         identityOwner: "operator"
