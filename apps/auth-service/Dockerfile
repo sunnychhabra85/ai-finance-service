@@ -39,10 +39,11 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 WORKDIR /app
 
-# Copy only what's needed to run (no dev dependencies, no source)
-COPY --from=builder --chown=appuser:appgroup /app/dist/apps/auth-service ./
+# Copy entire dist folder (includes compiled libs that auth-service depends on)
+COPY --from=builder --chown=appuser:appgroup /app/dist ./dist
 COPY --from=builder --chown=appuser:appgroup /app/node_modules ./node_modules
 COPY --from=builder --chown=appuser:appgroup /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder --chown=appuser:appgroup /app/package.json ./package.json
 
 # Never run containers as root!
 USER appuser
@@ -60,4 +61,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
 ENV NODE_ENV=production
 ENV PORT=3001
 
-CMD ["node", "apps/auth-service/src/main.js"]
+CMD ["node", "dist/apps/auth-service/src/main.js"]

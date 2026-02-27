@@ -55,9 +55,9 @@ IMPORTANT RULES:
     // ── Step 3: Call Anthropic with conversation history ───────
     const client = new Anthropic({ apiKey });
 
-    const messages = [
+    const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [
       ...history.map((h) => ({ role: h.role, content: h.content })),
-      { role: 'user', content: userMessage },
+      { role: 'user' as const, content: userMessage },
     ];
 
     const response = await client.messages.create({
