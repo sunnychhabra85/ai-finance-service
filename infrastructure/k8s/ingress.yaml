@@ -1,10 +1,3 @@
-# =============================================================
-# infrastructure/k8s/ingress.yaml
-# Single ALB ingress — routes all service paths
-# Apply: kubectl apply -f infrastructure/k8s/ingress.yaml
-# Replace auth-service/ingress.yaml and upload-service/ingress.yaml with this
-# =============================================================
-
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -12,26 +5,34 @@ metadata:
   namespace: finance
   annotations:
     kubernetes.io/ingress.class: alb
+
+    # Internet-facing ALB
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
+
+    # SSL
     alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-south-1:123456789012:certificate/YOUR-CERT-ARN
-    alb.ingress.kubernetes.io/ssl-redirect: '443'
-    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
-    alb.ingress.kubernetes.io/healthcheck-interval-seconds: '30'
-    alb.ingress.kubernetes.io/healthy-threshold-count: '2'
-    alb.ingress.kubernetes.io/unhealthy-threshold-count: '3'
-    # Load balancer attributes
-    alb.ingress.kubernetes.io/load-balancer-attributes: |
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80},{"HTTPS":443}]'
+
+    # Health check tuning (important!)
+    alb.ingress.kubernetes.io/healthcheck-path: /api/v1/health
+    alb.ingress.kubernetes.io/healthcheck-port: traffic-port
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: "30"
+    alb.ingress.kubernetes.io/healthy-threshold-count: "2"
+    alb.ingress.kubernetes.io/unhealthy-threshold-count: "3"
+
+    # Performance tuning
+    alb.ingress.kubernetes.io/load-balancer-attributes: >
       routing.http.drop_invalid_header_fields.enabled=true,
       idle_timeout.timeout_seconds=120
-    # WAF (uncomment when ready)
-    # alb.ingress.kubernetes.io/wafv2-acl-arn: arn:aws:wafv2:...
+
 spec:
   rules:
-    - host: api.yourdomain.com   # Replace with your domain
+    - host: api.yourdomain.com
       http:
         paths:
-          # ── Auth Service (port 3001) ─────────────────────────
+
           - path: /api/v1/auth
             pathType: Prefix
             backend:
@@ -40,7 +41,6 @@ spec:
                 port:
                   number: 80
 
-          # ── Upload Service (port 3002) ───────────────────────
           - path: /api/v1/upload
             pathType: Prefix
             backend:
@@ -49,7 +49,6 @@ spec:
                 port:
                   number: 80
 
-          # ── Analytics Service (port 3004) ────────────────────
           - path: /api/v1/analytics
             pathType: Prefix
             backend:
@@ -58,7 +57,6 @@ spec:
                 port:
                   number: 80
 
-          # ── AI Chatbot (port 3004 — same service as analytics)
           - path: /api/v1/chat
             pathType: Prefix
             backend:
@@ -67,20 +65,10 @@ spec:
                 port:
                   number: 80
 
-          # ── Notifications / SSE (port 3005) ─────────────────
           - path: /api/v1/notifications
             pathType: Prefix
             backend:
               service:
                 name: notification-service
-                port:
-                  number: 80
-
-          # ── Health checks ────────────────────────────────────
-          - path: /api/v1/health
-            pathType: Prefix
-            backend:
-              service:
-                name: auth-service
                 port:
                   number: 80

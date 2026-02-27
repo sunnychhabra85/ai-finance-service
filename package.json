@@ -16,7 +16,12 @@
     "prisma:generate": "prisma generate --schema=libs/database/prisma/schema.prisma",
     "prisma:migrate:dev": "prisma migrate dev --schema=libs/database/prisma/schema.prisma",
     "prisma:migrate:prod": "prisma migrate deploy --schema=libs/database/prisma/schema.prisma",
-    "prisma:studio": "prisma studio --schema=libs/database/prisma/schema.prisma"
+    "prisma:studio": "prisma studio --schema=libs/database/prisma/schema.prisma",
+    "build:auth": "nx build auth-service --configuration=production",
+    "build:upload": "nx build upload-service --configuration=production",
+    "build:processing": "nx build processing-service --configuration=production",
+    "build:notification": "nx build notification-service --configuration=production",
+    "build:analytics": "nx build analytics-service --configuration=production"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.20.0",
