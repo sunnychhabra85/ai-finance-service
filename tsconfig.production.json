@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": "./",
+    "paths": {
+      "@finance/shared-types": ["dist/libs/shared-types/src"],
+      "@finance/shared-dtos": ["dist/libs/shared-dtos/src"],
+      "@finance/database": ["dist/libs/database/src"]
+    }
+  }
+}
