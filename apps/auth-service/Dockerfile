@@ -44,6 +44,7 @@ COPY --from=builder --chown=appuser:appgroup /app/dist ./dist
 COPY --from=builder --chown=appuser:appgroup /app/node_modules ./node_modules
 COPY --from=builder --chown=appuser:appgroup /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder --chown=appuser:appgroup /app/package.json ./package.json
+COPY --from=builder --chown=appuser:appgroup /app/tsconfig.json ./tsconfig.json
 
 # Never run containers as root!
 USER appuser
@@ -61,4 +62,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
 ENV NODE_ENV=production
 ENV PORT=3001
 
-CMD ["node", "dist/apps/auth-service/apps/auth-service/src/main.js"]
+CMD ["node", "-r", "tsconfig-paths/register", "dist/apps/auth-service/apps/auth-service/src/main.js"]

@@ -38,6 +38,7 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/tsconfig.json ./tsconfig.json
 
 RUN chown -R appuser:appgroup /app
 USER appuser
@@ -51,4 +52,4 @@ ENV NODE_ENV=production
 ENV PORT=3002
 ENV SERVICE_NAME=upload-service
 
-CMDanonymized ["node", "dist/apps/upload-service/apps/upload-service/src/main.js"]
+CMD ["node", "-r", "tsconfig-paths/register", "dist/apps/upload-service/apps/upload-service/src/main.js"]
