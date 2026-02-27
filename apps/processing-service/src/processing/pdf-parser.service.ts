@@ -4,7 +4,6 @@
 // =============================================================
 
 import { Injectable, Logger } from '@nestjs/common';
-import { Decimal } from '@prisma/client/runtime/library';
 
 export interface ParsedTransaction {
   date: Date;
@@ -98,7 +97,7 @@ export class PdfParserService {
   }
 
   private extractDescription(line: string, dateStr: string, amountStr: string): string {
-    let desc = line
+    const desc = line
       .replace(dateStr, '')
       .replace(amountStr, '')
       .replace(/\s+(CR|DR|CREDIT|DEBIT)\s*/gi, '')

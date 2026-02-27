@@ -3,9 +3,10 @@
 // AI Spending Assistant — RAG pattern using Anthropic Claude
 // =============================================================
 
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AnalyticsService } from '../analytics/analytics.service';
+import Anthropic from '@anthropic-ai/sdk';
 
 export interface ChatMessage { role: 'user' | 'assistant'; content: string; }
 
@@ -52,8 +53,7 @@ IMPORTANT RULES:
 5. Use ₹ symbol for Indian Rupees`;
 
     // ── Step 3: Call Anthropic with conversation history ───────
-    const Anthropic = require('@anthropic-ai/sdk');
-    const client = new Anthropic.Anthropic({ apiKey });
+    const client = new Anthropic({ apiKey });
 
     const messages = [
       ...history.map((h) => ({ role: h.role, content: h.content })),
