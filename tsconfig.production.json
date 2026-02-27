@@ -1,6 +1,7 @@
 {
-  "extends": "./tsconfig.json",
   "compilerOptions": {
+    "module": "commonjs",
+    "target": "ES2021",
     "baseUrl": "./",
     "paths": {
       "@finance/shared-types": ["dist/libs/shared-types/src"],
