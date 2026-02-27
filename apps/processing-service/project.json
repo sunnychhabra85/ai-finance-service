@@ -21,7 +21,7 @@
       "executor": "@nx/jest:jest",
       "outputs": ["{workspaceRoot}/coverage/apps/processing-service"],
       "options": {
-        "jestConfig": "apps/processing-service/jest.config.js",
+        "jestConfig": "apps/processing-service/jest.config.ts",
         "passWithNoTests": true
       }
     },
