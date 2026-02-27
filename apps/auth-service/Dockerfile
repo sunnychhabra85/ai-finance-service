@@ -61,4 +61,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
 ENV NODE_ENV=production
 ENV PORT=3001
 
-CMD ["node", "dist/apps/auth-service/src/main.js"]
+CMD ["node", "dist/apps/auth-service/apps/auth-service/src/main.js"]
