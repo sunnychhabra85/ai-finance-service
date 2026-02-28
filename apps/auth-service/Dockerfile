@@ -1,11 +1,11 @@
 # ---------- deps ----------
-FROM node:20-alpine AS deps
+FROM node:20-slim AS deps
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 
 # ---------- builder ----------
-FROM node:20-alpine AS builder
+FROM node:20-slim AS builder
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
@@ -21,10 +21,12 @@ RUN npx nx build database --prod
 RUN npx nx build auth-service --prod
 
 # ---------- runner ----------
-FROM node:20-alpine AS runner
+FROM node:20-slim AS runner
 
-RUN apk add --no-cache wget
-RUN addgroup -S -g 1001 appgroup && adduser -S -u 1001 -G appgroup appuser
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends wget ca-certificates openssl \
+  && rm -rf /var/lib/apt/lists/*
+RUN groupadd -g 1001 appgroup && useradd -u 1001 -g appgroup -s /usr/sbin/nologin -m appuser
 
 WORKDIR /app
 

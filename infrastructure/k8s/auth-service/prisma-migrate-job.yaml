@@ -19,13 +19,15 @@ spec:
       restartPolicy: Never
       containers:
         - name: migrate
-          image: node:20-alpine
+          image: node:20-slim
           command:
             - sh
             - -c
             - |
               echo "Installing dependencies..."
-              apk add --no-cache openssl openssl-dev
+              apt-get update \
+                && apt-get install -y --no-install-recommends openssl ca-certificates \
+                && rm -rf /var/lib/apt/lists/*
 
               echo "Installing Prisma CLI v5.10.0..."
               npm install -g prisma@5.10.0
