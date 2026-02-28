@@ -8,6 +8,7 @@ import {
   Injectable,
   ExecutionContext,
   UnauthorizedException,
+  Type
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { PassportStrategy } from '@nestjs/passport';
@@ -17,7 +18,7 @@ import { PrismaClient } from '@prisma/client';
 
 // ── Re-usable strategy factory ─────────────────────────────────
 // Pass the config key where JWT secret is stored (differs per service)
-export function createJwtStrategy(secretConfigKey: string) {
+export function createJwtStrategy(secretConfigKey: string): Type<any> {
   @Injectable()
   class JwtStrategyImpl extends PassportStrategy(Strategy, 'jwt') {
     constructor(config: ConfigService, public readonly prisma: PrismaClient) {
