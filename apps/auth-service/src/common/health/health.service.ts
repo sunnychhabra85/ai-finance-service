@@ -7,8 +7,7 @@
 // =============================================================
 
 import { Injectable } from '@nestjs/common';
-// import { DatabaseService } from '../../../../libs/database/src/database.service';
-import { DatabaseService } from '../../../../../libs/database/src/database.service';
+import { DatabaseService } from '@finance/database';
 
 @Injectable()
 export class HealthService {
