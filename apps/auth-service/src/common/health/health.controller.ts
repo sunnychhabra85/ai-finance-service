@@ -4,12 +4,12 @@
 
 import { Controller, Get, HttpCode, HttpStatus, ServiceUnavailableException } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
-import { DatabaseService } from '@finance/database';
+import { HealthService } from './health.service';
 
 @ApiTags('health')
 @Controller('health')
 export class HealthController {
-  constructor(private readonly db: DatabaseService) {}
+  constructor(private readonly health: HealthService) {}
 
   // ── GET /api/v1/health ────────────────────────────────────────
   // Kubernetes Liveness Probe: Is the service alive?
@@ -29,7 +29,7 @@ export class HealthController {
   @Get('ready')
   @ApiOperation({ summary: 'Readiness probe — checks DB connectivity' })
   async readiness() {
-    const dbHealthy = await this.db.isHealthy();
+    const dbHealthy = await this.health.isHealthy();
 
     if (!dbHealthy) {
       throw new ServiceUnavailableException({
