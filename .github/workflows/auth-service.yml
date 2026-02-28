@@ -181,11 +181,33 @@ jobs:
             --name ${{ env.EKS_CLUSTER }} \
             --region ${{ env.AWS_REGION }}
 
-      - name: Apply K8s manifests (secrets, service, ingress)
+      - name: Run Prisma migrations (production DB)
         run: |
+          # Ensure namespace and secrets exist before running migrations
           kubectl apply -f infrastructure/k8s/namespace.yaml
-          kubectl apply -f infrastructure/k8s/ingress.yaml
           kubectl apply -f infrastructure/k8s/auth-service/secrets.yaml
+
+          # Create/update ConfigMap with current Prisma schema from this commit
+          kubectl create configmap prisma-schema \
+            --from-file=libs/database/prisma/schema.prisma \
+            -n ${{ env.K8S_NAMESPACE }} \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+          # Delete any previous migration job so we can run a fresh one
+          kubectl delete job prisma-migrate -n ${{ env.K8S_NAMESPACE }} --ignore-not-found
+
+          # Apply the migration Job manifest and wait for completion
+          kubectl apply -f infrastructure/k8s/auth-service/prisma-migrate-job.yaml
+
+          kubectl wait --for=condition=complete job/prisma-migrate \
+            -n ${{ env.K8S_NAMESPACE }} --timeout=300s
+
+          # Show last lines of migration logs for visibility
+          kubectl logs job/prisma-migrate -n ${{ env.K8S_NAMESPACE }} --tail=100
+
+      - name: Apply K8s manifests (service, ingress, deployment)
+        run: |
+          kubectl apply -f infrastructure/k8s/ingress.yaml
           kubectl apply -f infrastructure/k8s/auth-service/deployment.yaml
 
       - name: Update deployment image

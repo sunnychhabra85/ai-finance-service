@@ -14,6 +14,9 @@ async function bootstrap() {
     logger: ['log', 'error', 'warn', 'debug'],
   });
 
+  // Ensure SIGTERM/SIGINT from Kubernetes trigger graceful shutdown
+  app.enableShutdownHooks();
+
   // ── Global prefix ───────────────────────────────────────────
   // All routes: /api/v1/auth/...
   app.setGlobalPrefix('api/v1');
@@ -52,7 +55,7 @@ async function bootstrap() {
   }
 
   const port = process.env.PORT || 3001;
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
   logger.log(`Auth Service running on port ${port}`);
 }
 

@@ -2,7 +2,7 @@
 // apps/auth-service/src/common/health/health.controller.ts
 // =============================================================
 
-import { Controller, Get, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, HttpCode, HttpStatus, ServiceUnavailableException } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { DatabaseService } from '@finance/database';
 
@@ -32,12 +32,12 @@ export class HealthController {
     const dbHealthy = await this.db.isHealthy();
 
     if (!dbHealthy) {
-      return {
+      throw new ServiceUnavailableException({
         status: 'error',
         service: 'auth-service',
         checks: { database: 'DOWN' },
         timestamp: new Date().toISOString(),
-      };
+      });
     }
 
     return {
