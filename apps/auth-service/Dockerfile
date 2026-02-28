@@ -1,61 +1,49 @@
-# =============================================================
-# Production-Optimized Dockerfile (Nx + NestJS + Prisma)
-# Reusable for any microservice (change SERVICE_NAME arg)
-# =============================================================
-
-############################
-# 1️⃣ Dependencies Stage
-############################
-FROM node:20-slim AS deps
+# ---------- deps ----------
+FROM node:20-alpine AS deps
 WORKDIR /app
-
 COPY package*.json ./
-RUN npm ci --ignore-scripts
+RUN npm ci
 
-############################
-# 2️⃣ Build Stage
-############################
+# ---------- builder ----------
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Copy node_modules from deps stage
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Generate Prisma client
 RUN npx prisma generate --schema=libs/database/prisma/schema.prisma
 
-# Build ONLY the required service (Nx handles dependency graph)
-RUN npx nx build auth-service --configuration=production
+# Build database lib
+RUN npx nx build database --prod
 
-############################
-# 3️⃣ Production Runtime
-############################
+# Build auth service
+RUN npx nx build auth-service --prod
+
+# ---------- runner ----------
 FROM node:20-alpine AS runner
 
-# Security: run as non-root
+RUN apk add --no-cache wget
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 WORKDIR /app
 
-# Copy ONLY production package files
-COPY package*.json ./
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/libs/database/prisma ./libs/database/prisma
 
-# Install ONLY production dependencies
-RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
+# Prisma generate again for production image
+RUN npx prisma generate --schema=libs/database/prisma/schema.prisma
 
-# Copy compiled output
-COPY --from=builder --chown=appuser:appgroup /app/dist/apps/auth-service ./dist
-
-# Copy Prisma engine
-COPY --from=builder --chown=appuser:appgroup /app/node_modules/.prisma ./node_modules/.prisma
-
+RUN chown -R appuser:appgroup /app
 USER appuser
 
+EXPOSE 3001
 ENV NODE_ENV=production
 ENV PORT=3001
-ENV PRISMA_QUERY_ENGINE_LIBRARY=/app/node_modules/.prisma/client/libquery_engine-linux-musl-openssl-3.0.x.so.node
 
-EXPOSE 3001
+CMD ["node", "dist/apps/auth-service/main.js"]
 
-CMD ["node", "dist/main.js"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+  CMD wget -qO- http://localhost:3001/api/v1/health || exit 1
