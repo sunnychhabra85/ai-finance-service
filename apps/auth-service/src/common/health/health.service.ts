@@ -1,28 +1,20 @@
+// =============================================================
+// apps/auth-service/src/common/health/health.service.ts
+//
+// Wraps database health check in a dedicated service.
+// HealthController calls this service — controller never talks
+// to DatabaseService directly (separation of concerns).
+// =============================================================
+
 import { Injectable } from '@nestjs/common';
-import { DatabaseService } from '@finance/database';
+// import { DatabaseService } from '../../../../libs/database/src/database.service';
+import { DatabaseService } from '../../../../../libs/database/src/database.service';
 
 @Injectable()
 export class HealthService {
   constructor(private readonly db: DatabaseService) {}
 
-  async liveness() {
-    return {
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-    };
-  }
-
-  async readiness() {
-    const dbHealthy = await this.db.isHealthy();
-
-    return {
-      status: dbHealthy ? 'ready' : 'not_ready',
-      database: dbHealthy ? 'connected' : 'disconnected',
-      timestamp: new Date().toISOString(),
-    };
-  }
-
-  // Convenience method if a boolean is needed
+  // Called by the readiness probe — returns true if DB is reachable
   async isHealthy(): Promise<boolean> {
     return this.db.isHealthy();
   }
