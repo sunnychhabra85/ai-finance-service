@@ -24,7 +24,7 @@ RUN npx nx build auth-service --prod
 FROM node:20-alpine AS runner
 
 RUN apk add --no-cache wget
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+RUN addgroup -S -g 1001 appgroup && adduser -S -u 1001 -G appgroup appuser
 
 WORKDIR /app
 
@@ -32,9 +32,6 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/libs/database/prisma ./libs/database/prisma
-
-# Prisma generate again for production image
-RUN npx prisma generate --schema=libs/database/prisma/schema.prisma
 
 RUN chown -R appuser:appgroup /app
 USER appuser

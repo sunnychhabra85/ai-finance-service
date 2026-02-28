@@ -1,0 +1,54 @@
+# =============================================================
+# infrastructure/k8s/auth-service/prisma-migrate-job.yaml
+# One-off Job to run Prisma migrations against the production DB
+# Triggered from GitHub Actions before rolling out auth-service
+# =============================================================
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: prisma-migrate
+  namespace: finance
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        job: prisma-migrate
+    spec:
+      serviceAccountName: auth-service-sa
+      restartPolicy: Never
+      containers:
+        - name: migrate
+          image: node:20-alpine
+          command:
+            - sh
+            - -c
+            - |
+              echo "Installing dependencies..."
+              apk add --no-cache openssl openssl-dev
+
+              echo "Installing Prisma CLI v5.10.0..."
+              npm install -g prisma@5.10.0
+
+              echo "Setting up working directory..."
+              mkdir -p /app
+              cp /prisma-schema/schema.prisma /app/schema.prisma
+              cd /app
+
+              echo "Running migrations (prisma migrate deploy)..."
+              prisma migrate deploy --schema=./schema.prisma
+
+              echo "Migration complete!"
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: auth-service-secrets
+                  key: DATABASE_URL
+          volumeMounts:
+            - name: prisma-schema
+              mountPath: /prisma-schema
+      volumes:
+        - name: prisma-schema
+          configMap:
+            name: prisma-schema

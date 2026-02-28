@@ -62,6 +62,14 @@ spec:
             - containerPort: 3001
               name: http
 
+          # Startup probe: allow extra time for cold starts and migrations
+          startupProbe:
+            httpGet:
+              path: /api/v1/health
+              port: 3001
+            periodSeconds: 10
+            failureThreshold: 30
+
           # Load secrets from K8s Secret (synced from AWS Secrets Manager via ESO)
           envFrom:
             - secretRef:
@@ -94,8 +102,8 @@ spec:
             httpGet:
               path: /api/v1/health/ready
               port: 3001
-            initialDelaySeconds: 10  # Wait 10s after container starts
-            periodSeconds: 10         # Check every 10s
+            initialDelaySeconds: 20  # Wait a bit longer after container starts
+            periodSeconds: 10        # Check every 10s
             failureThreshold: 3       # Mark unready after 3 failures
             successThreshold: 1
 
