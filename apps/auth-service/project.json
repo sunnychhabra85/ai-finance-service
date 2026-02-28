@@ -6,9 +6,8 @@
   "targets": {
     "build": {
       "executor": "nx:run-commands",
-      "outputs": ["{workspaceRoot}/dist/apps/auth-service"],
       "options": {
-        "command": "tsc -p apps/auth-service/tsconfig.app.json"
+        "command": "tsup apps/auth-service/src/main.ts --out-dir dist/apps/auth-service --format cjs --platform node --target node20 --clean"
       }
     },
     "serve": {
@@ -19,7 +18,9 @@
     },
     "test": {
       "executor": "@nx/jest:jest",
-      "outputs": ["{workspaceRoot}/coverage/apps/auth-service"],
+      "outputs": [
+        "{workspaceRoot}/coverage/apps/auth-service"
+      ],
       "options": {
         "jestConfig": "apps/auth-service/jest.config.ts",
         "passWithNoTests": true
@@ -27,8 +28,13 @@
     },
     "lint": {
       "executor": "@nx/eslint:lint",
-      "outputs": ["{options.outputFile}"]
+      "outputs": [
+        "{options.outputFile}"
+      ]
     }
   },
-  "tags": ["type:app", "scope:auth"]
+  "tags": [
+    "type:app",
+    "scope:auth"
+  ]
 }
