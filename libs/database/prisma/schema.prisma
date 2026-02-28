@@ -6,6 +6,8 @@
 generator client {
   provider      = "prisma-client-js"
   output        = "../../../node_modules/.prisma/client"
+  // Bundle engines for both the build host (native) and Debian with OpenSSL 3.0
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 datasource db {
