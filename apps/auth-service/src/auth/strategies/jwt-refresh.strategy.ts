@@ -6,7 +6,6 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
 import * as crypto from 'crypto';
 import { JwtPayload } from '@finance/shared-types';
@@ -15,13 +14,12 @@ import { DatabaseService } from '@finance/database';
 @Injectable()
 export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh') {
   constructor(
-    private readonly config: ConfigService,
     private readonly db: DatabaseService,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromBodyField('refreshToken'),
       ignoreExpiration: false,
-      secretOrKey: config.get<string>('app.jwt.refreshSecret'),
+      secretOrKey: process.env.JWT_REFRESH_SECRET,
       passReqToCallback: true, // Pass full request to validate()
     });
   }

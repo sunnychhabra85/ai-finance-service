@@ -6,20 +6,18 @@ import 'reflect-metadata';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import { ConfigService } from '@nestjs/config';
 import { JwtPayload } from '@finance/shared-types';
 import { DatabaseService } from '@finance/database';
 
 @Injectable()
 export class JwtAccessStrategy extends PassportStrategy(Strategy, 'jwt-access') {
 	constructor(
-		private readonly config: ConfigService,
 		private readonly db: DatabaseService,
 	) {
 		super({
 			jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
 			ignoreExpiration: false,
-			secretOrKey: config.get<string>('app.jwt.accessSecret'),
+			secretOrKey: process.env.JWT_ACCESS_SECRET,
 		});
 	}
 
