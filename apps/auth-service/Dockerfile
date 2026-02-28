@@ -43,7 +43,7 @@ EXPOSE 3001
 ENV NODE_ENV=production
 ENV PORT=3001
 
-CMD ["node", "dist/apps/auth-service/main.js"]
+CMD ["node", "dist/apps/auth-service/apps/auth-service/src/main.js"]
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
   CMD wget -qO- http://localhost:3001/api/v1/health || exit 1
