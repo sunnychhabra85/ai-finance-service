@@ -42,17 +42,30 @@ async function bootstrap() {
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   });
 
-  // ── Swagger (disable in production if needed) ───────────────
+  // ── Swagger (non-production only) ──────────────────────────────────
+  // Wrapped in try/catch so a Swagger metadata error (e.g. a controller
+  // parameter missing type metadata) can NEVER crash the process.
+  // The app must always start; probes must always be reachable.
   if (process.env.NODE_ENV !== 'production') {
-    const config = new DocumentBuilder()
-      .setTitle('Auth Service API')
-      .setDescription('Authentication & Authorization endpoints')
-      .setVersion('1.0')
-      .addBearerAuth()
-      .build();
-    const document = SwaggerModule.createDocument(app, config);
-    SwaggerModule.setup('api/docs', app, document);
-    logger.log('Swagger available at /api/docs');
+    try {
+      const config = new DocumentBuilder()
+        .setTitle('Auth Service API')
+        .setDescription('Authentication & Authorization endpoints')
+        .setVersion('1.0')
+        .addBearerAuth()
+        .build();
+      const document = SwaggerModule.createDocument(app, config);
+      SwaggerModule.setup('api/docs', app, document);
+      logger.log('Swagger available at /api/docs');
+    } catch (swaggerError) {
+      // Log clearly so the developer sees it immediately, then continue
+      // booting.  Health probes still respond; the service still works.
+      logger.warn(
+        `Swagger init failed — docs will be unavailable: ${
+          (swaggerError as Error).message
+        }`,
+      );
+    }
   }
 
   const port = process.env.PORT || 3001;

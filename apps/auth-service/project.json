@@ -7,7 +7,7 @@
     "build": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "tsup apps/auth-service/src/main.ts --out-dir dist/apps/auth-service --format cjs --platform node --target node20 --clean"
+        "command": "tsc -p apps/auth-service/tsconfig.build.json"
       }
     },
     "serve": {

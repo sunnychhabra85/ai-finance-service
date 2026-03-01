@@ -1,0 +1,37 @@
+{
+  // =============================================================
+  // apps/auth-service/tsconfig.build.json
+  //
+  // Used exclusively for production builds (nx build auth-service).
+  // Extends tsconfig.app.json but widens rootDir to the workspace
+  // root so tsc can follow cross-package imports (@finance/*) and
+  // compile them alongside auth-service source files.
+  //
+  // WHY NOT tsup/esbuild?
+  //   esbuild (the transpiler tsup uses) intentionally never emits
+  //   `emitDecoratorMetadata` calls.  NestJS's DI system relies on
+  //   Reflect.metadata at runtime → without decorator metadata every
+  //   injected dependency becomes `undefined` at request time.
+  //
+  // WHY tsc?
+  //   tsc honours `emitDecoratorMetadata: true` (set in
+  //   tsconfig.app.json → tsconfig.json chain) and produces plain
+  //   CommonJS JS files.  The runner image already contains
+  //   node_modules, so no bundling is needed.
+  //   Cross-package paths (@finance/*) are resolved at runtime via
+  //   `tsconfig-paths/register` using tsconfig.production.json.
+  // =============================================================
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    // Widen rootDir to workspace root so that cross-package sources
+    // (libs/database/src, libs/shared-types/src, etc.) can be compiled
+    // as part of this build without a "File is not under 'rootDir'" error.
+    "rootDir": "../../",
+
+    // Flatten output into dist/ so that:
+    //   apps/auth-service/src/main.ts → dist/apps/auth-service/src/main.js
+    //   libs/database/src/index.ts   → dist/libs/database/src/index.js
+    // Both end up under dist/, which the Dockerfile copies into the image.
+    "outDir": "../../dist"
+  }
+}
