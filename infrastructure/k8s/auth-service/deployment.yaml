@@ -62,13 +62,16 @@ spec:
             - containerPort: 3001
               name: http
 
-          # Startup probe: allow extra time for cold starts and migrations
+          # Startup probe: allow extra time for cold starts and Prisma migrations.
+          # Kubernetes will NOT start liveness/readiness probes until this succeeds.
+          # Budget: 10s × 30 attempts = 300 s max before the container is killed.
           startupProbe:
             httpGet:
               path: /api/v1/health
               port: 3001
             periodSeconds: 10
             failureThreshold: 30
+            timeoutSeconds: 5   # Give the app 5 s to respond before counting as failure
 
           # Load secrets from K8s Secret (synced from AWS Secrets Manager via ESO)
           envFrom:
@@ -97,25 +100,30 @@ spec:
               cpu: 500m      # Max 0.5 CPU cores
               memory: 512Mi  # Max 512MB RAM
 
-          # Readiness Probe: only send traffic when DB is connected
+          # Readiness Probe: Kubernetes stops routing traffic to this pod when it fails.
+          # The startupProbe above already ensures the app is fully booted before this
+          # probe fires, so initialDelaySeconds only adds a small buffer after startup.
           readinessProbe:
             httpGet:
               path: /api/v1/health/ready
               port: 3001
-            initialDelaySeconds: 20  # Wait a bit longer after container starts
-            periodSeconds: 10        # Check every 10s
-            failureThreshold: 3       # Mark unready after 3 failures
-            successThreshold: 1
+            initialDelaySeconds: 5   # Short buffer after startupProbe succeeds
+            periodSeconds: 10        # Check every 10 s
+            failureThreshold: 3      # Mark unready after 3 consecutive failures (30 s)
+            successThreshold: 1      # Re-add to LB after 1 success
+            timeoutSeconds: 5        # DB SELECT 1 must complete within 5 s
 
-          # Liveness Probe: restart container if it hangs
+          # Liveness Probe: Kubernetes RESTARTS the container when this fails.
+          # IMPORTANT: only probe /health (liveness), never /health/ready (readiness).
+          # A failed DB should make the pod unready, NOT trigger a restart loop.
           livenessProbe:
             httpGet:
               path: /api/v1/health
               port: 3001
-            initialDelaySeconds: 30   # Give more time to start up
-            periodSeconds: 15
-            failureThreshold: 3
-            timeoutSeconds: 5
+            initialDelaySeconds: 10  # Short buffer; startupProbe already handled cold start
+            periodSeconds: 15        # Check every 15 s — less aggressive than readiness
+            failureThreshold: 3      # Restart only after 3 missed beats (45 s)
+            timeoutSeconds: 5        # Simple in-process check; 5 s is generous
 
           lifecycle:
             # Graceful shutdown: stop accepting requests, finish current ones
